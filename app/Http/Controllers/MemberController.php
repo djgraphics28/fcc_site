@@ -49,11 +49,21 @@ class MemberController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(MemberStoreRequest $request)
+    public function store(MemberStoreRequest $request): RedirectResponse
     {
-        $data = new Member();
+        // Check if a user with the given first name and last name exists
+        $firstName = $request->input('firstName');
+        $lastName = $request->input('lastName');
+        $memberExists = Member::where('first_name', $firstName)
+                        ->where('last_name', $lastName)
+                        ->exists();
 
-        $data->create([
+        if ($memberExists) {
+            toastr()->warning('The first name and last name combination is already in use.');
+            return back();
+        }
+
+        $data = Member::create([
             'first_name' => $request->firstName,
             'middle_name' => $request->middleName,
             'last_name' => $request->lastName,
@@ -66,26 +76,13 @@ class MemberController extends Controller
             'email' => $request->email
         ]);
 
-        // Check if a user with the given first name and last name exists
-        $firstName = $request->input('firstName');
-        $lastName = $request->input('lastName');
-        $memberExists = Member::where('first_name', $firstName)
-                        ->where('last_name', $lastName)
-                        ->exists();
-
-        if ($memberExists) {
-            toastr()->error('The first name and last name combination is already in use.');
-        } else {
-            if ($data ) {
-                toastr()->success('Registration succeed!');
-
-                return redirect()->route('registration.success', ['firstName' => $request->firstName]);
-            }
+        if($data) {
+            toastr()->success('Registration succeed!');
+            return redirect()->route('registration.success', ['firstName' => $request->firstName]);
         }
-        //  else {
-        //     toastr()->error('An error has occurred please try again later.');
-        //     return back();
-        // }
+
+        toastr()->error('An error has occurred please try again later.');
+        return back();
 
     }
 
